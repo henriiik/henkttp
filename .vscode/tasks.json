@@ -41,6 +41,9 @@
         },
         {
             "taskName": "run",
+            "args": [
+                "--release"
+            ],
             "isTestCommand": true,
             "problemMatcher": [
                 {

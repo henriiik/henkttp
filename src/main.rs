@@ -3,13 +3,53 @@ extern crate bytes;
 
 use bytes::Take;
 use mio::{EventLoop, EventSet, Handler, PollOpt, Token, TryRead, TryWrite};
-use mio::tcp::{TcpListener, TcpStream, Shutdown};
+use mio::tcp::{Shutdown, TcpListener, TcpStream};
 use mio::util::Slab;
 use std::io::BufWriter;
 use std::io::Cursor;
 use std::io::Write;
 
 const SERVER: Token = Token(0);
+
+#[derive(Debug)]
+enum StatusCode {
+    Ok,
+    Error,
+}
+
+impl StatusCode {
+    fn write(&self, buf: &mut BufWriter<&mut Vec<u8>>) -> Result<usize, std::io::Error> {
+        match *self {
+            StatusCode::Ok => buf.write(b"HTTP/1.1 200 OK\r\n"),
+            StatusCode::Error => buf.write(b"HTTP/1.1 500 Internal Server Error\r\n"),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Response {
+    code: StatusCode,
+    body: Vec<u8>,
+}
+
+impl Response {
+    fn new() -> Response {
+        Response {
+            code: StatusCode::Ok,
+            body: vec![],
+        }
+    }
+
+    fn write(&self, buf: &mut BufWriter<&mut Vec<u8>>) -> Result<usize, std::io::Error> {
+        try!(self.code.write(buf));
+        try!(write!(buf, "Content-Lenght: {}\r\n", self.body.len()));
+        try!(buf.write(b"Content-type: text/plain; charset=UTF-8\r\n"));
+        try!(buf.write(b"\r\n"));
+        try!(buf.write(&self.body));
+
+        Ok(0)
+    }
+}
 
 #[derive(Debug)]
 enum State {
@@ -23,7 +63,6 @@ struct Request {
     stream: TcpStream,
     token: Token,
     state: State,
-    // handler: Fn()
     req: Vec<u8>,
     res: Vec<u8>,
 }
@@ -83,9 +122,15 @@ impl Request {
     }
 
     fn handle(&mut self, event_loop: &mut EventLoop<HttpServer>) {
+        let mut response = Response::new();
         {
-            let mut res = BufWriter::new(&mut self.res);
-            res.write("HTTP/1.1 200 OK\r\n\r\nHello!".to_string().as_bytes()).unwrap();
+            let mut buf = BufWriter::new(&mut response.body);
+            buf.write("Hello World!".to_string().as_bytes()).unwrap();
+        }
+
+        {
+            let mut buf = BufWriter::new(&mut self.res);
+            response.write(&mut buf).unwrap();
         }
 
         self.state = State::Writing;
