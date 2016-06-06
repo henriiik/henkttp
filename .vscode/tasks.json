@@ -1,0 +1,156 @@
+{
+    "version": "0.1.0",
+    "command": "cargo",
+    "isShellCommand": true,
+    "showOutput": "always",
+    "echoCommand": true,
+    "options": {
+        "env": {
+            "RUST_BACKTRACE": "1"
+        }
+    },
+    "tasks": [
+        {
+            "taskName": "build",
+            "isBuildCommand": true,
+            "problemMatcher": [
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.+):(\\d+):(\\d+):\\s*(\\d+):(\\d+)\\s(\\w+):\\s*(.+)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "endLine": 4,
+                        "endColumn": 5,
+                        "severity": 6,
+                        "message": 7
+                    }
+                },
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.*panicked.*),\\s*(.+):(\\d+)$",
+                        "message": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 0
+                    }
+                }
+            ]
+        },
+        {
+            "taskName": "run",
+            "isTestCommand": true,
+            "problemMatcher": [
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.+):(\\d+):(\\d+):\\s*(\\d+):(\\d+)\\s(\\w+):\\s*(.+)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "endLine": 4,
+                        "endColumn": 5,
+                        "severity": 6,
+                        "message": 7
+                    }
+                },
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.*panicked.*),\\s*(.+):(\\d+)$",
+                        "message": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 0
+                    }
+                }
+            ]
+        },
+        {
+            "taskName": "run",
+            "problemMatcher": [
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.+):(\\d+):(\\d+):\\s*(\\d+):(\\d+)\\s(\\w+):\\s*(.+)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "endLine": 4,
+                        "endColumn": 5,
+                        "severity": 6,
+                        "message": 7
+                    }
+                },
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.*panicked.*),\\s*(.+):(\\d+)$",
+                        "message": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 0
+                    }
+                }
+            ]
+        },
+        {
+            "taskName": "doc",
+            "problemMatcher": [
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.+):(\\d+):(\\d+):\\s*(\\d+):(\\d+)\\s(\\w+):\\s*(.+)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "endLine": 4,
+                        "endColumn": 5,
+                        "severity": 6,
+                        "message": 7
+                    }
+                },
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.*panicked.*),\\s*(.+):(\\d+)$",
+                        "message": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 0
+                    }
+                }
+            ]
+        },
+        {
+            "taskName": "fmt",
+            "problemMatcher": [
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.+):(\\d+):(\\d+):\\s*(\\d+):(\\d+)\\s(\\w+):\\s*(.+)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "endLine": 4,
+                        "endColumn": 5,
+                        "severity": 6,
+                        "message": 7
+                    }
+                },
+                {
+                    "owner": "rust",
+                    "pattern": {
+                        "regexp": "^(.*panicked.*),\\s*(.+):(\\d+)$",
+                        "message": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 0
+                    }
+                }
+            ]
+        }
+    ]
+}

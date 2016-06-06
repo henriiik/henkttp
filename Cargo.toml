@@ -1,0 +1,8 @@
+[package]
+name = "henkttp"
+version = "0.1.0"
+authors = ["Henrik Sjööh <henriiik@gmail.com>"]
+
+[dependencies]
+mio = "*"
+bytes = "*"
