@@ -5,24 +5,30 @@ use bytes::Take;
 use mio::{EventLoop, EventSet, Handler, PollOpt, Token, TryRead, TryWrite};
 use mio::tcp::{Shutdown, TcpListener, TcpStream};
 use mio::util::Slab;
-use std::io::BufWriter;
-use std::io::Cursor;
-use std::io::Write;
+use std::io::{BufWriter, Cursor, Write};
 
 const SERVER: Token = Token(0);
 
 #[derive(Debug)]
 enum StatusCode {
     Ok,
+    NotFound,
     Error,
 }
 
 impl StatusCode {
     fn write(&self, buf: &mut BufWriter<&mut Vec<u8>>) -> Result<usize, std::io::Error> {
-        match *self {
-            StatusCode::Ok => buf.write(b"HTTP/1.1 200 OK\r\n"),
-            StatusCode::Error => buf.write(b"HTTP/1.1 500 Internal Server Error\r\n"),
-        }
+        let mut size = try!(buf.write(b"HTTP/1.1 "));
+
+        size += try!(match *self {
+            StatusCode::Ok => buf.write(b"200 OK"),
+            StatusCode::NotFound => buf.write(b"404 Not Found"),
+            StatusCode::Error => buf.write(b"500 Internal Server Error"),
+        });
+
+        size += try!(buf.write(b"\r\n"));
+
+        Ok(size)
     }
 }
 
@@ -56,6 +62,25 @@ enum State {
     Reading,
     Handling,
     Writing,
+}
+
+#[derive(Debug)]
+struct RawRequest<'a>(&'a str);
+
+impl<'a> RawRequest<'a> {
+    fn method(&self) -> &'a str {
+        match self.0.lines().next().map(|line| line.split_whitespace().next()) {
+            Some(Some(a)) => a,
+            _ => &self.0,
+        }
+    }
+
+    fn path(&self) -> &'a str {
+        match self.0.lines().next().map(|line| line.split_whitespace().nth(1)) {
+            Some(Some(a)) => a,
+            _ => &self.0,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -99,7 +124,7 @@ impl Request {
             Ok(Some(0)) => println!("read 0 bytes!!"),
             Ok(Some(n)) => {
                 println!("read {} bytes", n);
-                if self.req.ends_with(&"\r\n\r\n".to_string().as_bytes()) {
+                if self.req.ends_with(b"\r\n\r\n") {
                     println!("found end!");
                     self.state = State::Handling;
                 }
@@ -122,10 +147,26 @@ impl Request {
     }
 
     fn handle(&mut self, event_loop: &mut EventLoop<HttpServer>) {
+        // println!("req: {:?}", self.req);
+
+        match std::str::from_utf8(&self.req) {
+            Ok(req) => {
+                let raw = RawRequest(req);
+                println!("method: {:?}", raw.method());
+                println!("path: {:?}", raw.path());
+            }
+            Err(e) => println!("err {}", e),
+        }
+
+        // match std::str::from_utf8(&self.req) {
+        //     Ok(s) => println!("{:?}", s),
+        //     Err(e) => println!("err! {}", e),
+        // };
+
         let mut response = Response::new();
         {
             let mut buf = BufWriter::new(&mut response.body);
-            buf.write("Hello World!".to_string().as_bytes()).unwrap();
+            buf.write(b"Hello World!").unwrap();
         }
 
         {

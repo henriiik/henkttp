@@ -42,7 +42,7 @@
         {
             "taskName": "run",
             "args": [
-                "--release"
+                // "--release"
             ],
             "isTestCommand": true,
             "problemMatcher": [
