@@ -65,21 +65,23 @@ enum State {
 }
 
 #[derive(Debug)]
-struct RawRequest<'a>(&'a str);
+struct RequestParser<'a>(&'a str);
 
-impl<'a> RawRequest<'a> {
-    fn method(&self) -> &'a str {
-        match self.0.lines().next().map(|line| line.split_whitespace().next()) {
-            Some(Some(a)) => a,
-            _ => &self.0,
-        }
+impl<'a> RequestParser<'a> {
+    fn method(&self) -> Option<&'a str> {
+        self.0.split_whitespace().next()
     }
 
-    fn path(&self) -> &'a str {
-        match self.0.lines().next().map(|line| line.split_whitespace().nth(1)) {
-            Some(Some(a)) => a,
-            _ => &self.0,
-        }
+    fn path(&self) -> Option<&'a str> {
+        self.0.split_whitespace().nth(1)
+    }
+
+    fn headers(&self) -> Vec<&'a str> {
+        self.0.lines().skip(1).take_while(|line| *line != "").collect()
+    }
+
+    fn header(&self, name: &str) -> Option<&'a str> {
+        self.0.lines().skip(1).take_while(|line| *line != "").filter(|line| line.starts_with(name)).next()
     }
 }
 
@@ -121,7 +123,10 @@ impl Request {
 
     fn read(&mut self, event_loop: &mut EventLoop<HttpServer>) {
         match self.stream.try_read_buf(&mut self.req) {
-            Ok(Some(0)) => println!("read 0 bytes!!"),
+            Ok(Some(0)) => {
+                println!("read 0 bytes!!");
+                self.reregister(event_loop);
+            }
             Ok(Some(n)) => {
                 println!("read {} bytes", n);
                 if self.req.ends_with(b"\r\n\r\n") {
@@ -147,26 +152,33 @@ impl Request {
     }
 
     fn handle(&mut self, event_loop: &mut EventLoop<HttpServer>) {
-        // println!("req: {:?}", self.req);
+        let mut response = Response::new();
 
         match std::str::from_utf8(&self.req) {
             Ok(req) => {
-                let raw = RawRequest(req);
-                println!("method: {:?}", raw.method());
-                println!("path: {:?}", raw.path());
+                let mut buf = BufWriter::new(&mut response.body);
+
+                let parser = RequestParser(req);
+                println!("method: {:?}", parser.method());
+                println!("path: {:?}", parser.path());
+                println!("headers: {:?}", parser.headers());
+
+                match parser.path() {
+                    Some("/") => {
+                        buf.write(b"Hello World!\n").unwrap();
+                        buf.write(format!("{:?}", parser.header("User-Agent")).as_bytes()).unwrap();
+                    }
+                    Some("/other") => {
+                        buf.write(b"This is the other path!").unwrap();
+                    }
+                    _ => {
+                        response.code = StatusCode::NotFound;
+                    }
+                }
             }
-            Err(e) => println!("err {}", e),
-        }
-
-        // match std::str::from_utf8(&self.req) {
-        //     Ok(s) => println!("{:?}", s),
-        //     Err(e) => println!("err! {}", e),
-        // };
-
-        let mut response = Response::new();
-        {
-            let mut buf = BufWriter::new(&mut response.body);
-            buf.write(b"Hello World!").unwrap();
+            Err(_) => {
+                response.code = StatusCode::Error;
+            }
         }
 
         {
@@ -196,8 +208,12 @@ impl Request {
                 panic!("write error! {:?}", e);
             }
         }
+
         println!("shutting down!");
-        self.stream.shutdown(Shutdown::Both).unwrap();
+
+        self.stream.shutdown(Shutdown::Both).unwrap_or_else(|e| {
+            println!("could not shut down stream! {}", e);
+        });
     }
 
     fn reregister(&self, event_loop: &mut EventLoop<HttpServer>) {
@@ -215,7 +231,7 @@ impl Request {
 #[derive(Debug)]
 struct HttpServer {
     listener: TcpListener,
-    requests: Slab<Request>, // request_handler:
+    requests: Slab<Request>,
 }
 
 impl HttpServer {
