@@ -166,6 +166,7 @@ impl Request {
                 match parser.path() {
                     Some("/") => {
                         buf.write(b"Hello World!\n").unwrap();
+                        buf.write(format!("{:?}", std::time::SystemTime::now()).as_bytes()).unwrap();
                         buf.write(format!("{:?}", parser.header("User-Agent")).as_bytes()).unwrap();
                     }
                     Some("/other") => {
